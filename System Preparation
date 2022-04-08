@@ -1,0 +1,21 @@
+## System preparation ##
+
+#Download frcmod.mod_phipsi.1 file and save in working dir.
+
+In xLeap:
+
+complex = loadpdb " pdb_file_name.pdb"
+
+saveamberparm complex complex.prmtop complex.inpcrd
+saveamberparm complex complex_vac.prmtop complex_vac.inpcrd
+
+charge complex
+addions complex Na+ 0
+addions complex Cl- 0
+#add again
+addions complex Na+ 0
+solvateoct complex TIP3PBOX 10.0
+saveamberparm complex complex_sol.prmtop complex_sol.inpcrd
+
+
+Now you will get topology and co-ordinate file and start the MD Simulation
