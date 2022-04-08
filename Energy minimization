@@ -1,1 +1,8 @@
-
+minimization1
+ &cntrl
+  ntx = 1, irest = 0, ntpr = 100,
+  ntr = 1, restraintmask = ':1-591', restraint_wt = 2.0,
+  imin = 1, maxcyc = 1000, ncyc = 500, ntmin = 1, dx0 = 0.01, drms = 0.0001,
+  ntc = 2, ntf = 2,
+  ntb = 1, cut = 8.0, nsnb = 25
+/
