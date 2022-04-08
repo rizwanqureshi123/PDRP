@@ -1,0 +1,13 @@
+Input file for running PB and GB
+ &general
+#endframe: The frame from which to stop extracting snapshots from each trajectory file (=nstlim/ntpr).
+  startframe = 2, endframe = 1001, verbose = 1
+#entropy=1
+  receptor_mask=:1-323, ligand_mask=:324-647
+/
+ &gb
+  igb = 2, saltcon = 0.100
+/
+ &pb
+  istrng = 0.100
+/
