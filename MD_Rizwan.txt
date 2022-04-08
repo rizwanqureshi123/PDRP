@@ -1,0 +1,107 @@
+ ## MD Simulation and Binding Free energy in AMBER ###
+  1. Protein System Building
+  2. MD Simulation (Energy Minimization, Heating, equilibirium,density, production)
+  3. Combine the trajectories in CPPTRAJ, You can use remove water to reduce the file size.
+  
+
+        ## Analysis ##
+     	Calculate RMSD, RMSF and radius of gyration.
+
+
+   	## R-studio ##
+    	Library Bio -3D 
+    	Biopython in Python
+    	MDanalysis in python. (I use only CA atoms for the analysis).
+
+
+        Protein System Building
+
+   $AMBERHOME/bin/xleap -s -f $AMBERHOME/dat/leap/cmd/oldff/leaprc.ff99 (Depending upon which FF u use, u can use ff14sb, as well).
+	
+	#Download frcmod.mod_phipsi.1 file and save in working dir.
+
+		In xLeap:
+
+	complex = loadpdb filename.pdb
+
+	#saveamberparm complex complex.prmtop complex.inpcrd
+	saveamberparm complex complex_vac.prmtop complex_vac.inpcrd
+
+	charge complex
+	addions complex Na+ 0
+	addions complex Cl- 0
+	#add again
+	addions complex Na+ 0
+	solvateoct complex TIP3PBOX 10.0
+	saveamberparm complex complex_sol.prmtop complex_sol.inpcrd
+        
+        If you encounter any error, you should check the pdb file and remove the  +,- ions, sign, or in the end if any description is written, remove it.
+         Minimiization, save the min1.in file in the working directory (use this command, if you are using the GPU)
+	$usr/local/amber16/AmberTools/bin/pmemd.cuda -O -i min1.in -o min1.out -p x_sol.prmtop -c x_sol.inpcrd -r min1.rst -ref x_sol.inpcrd
+
+
+	 (Use this command, if using multiple CPUs).
+	mpirun -np 12 $usr/local/amber16/AmberTools/bin/sander.MPI -O -i min1.in -o min1.out -p x_sol.prmtop -c x_sol.inpcrd -r min1.rst -ref x_sol.inpcrd
+
+		Again performing Minimization
+
+		#Download min2.in and save in Dir.
+
+		mpirun -np 12 $AMBERHOME/bin/pmemd.cuda -O -i min2.in -o min2.out -p complex_sol.prmtop -c min1.rst -r min2.rst -ref min1.rst
+
+		To compare the final minimised structure against the input structure do:
+
+		$AMBERHOME/bin/ambpdb -p complex_sol.prmtop -c min1.rst > min1.pdb
+
+		#Heat:
+
+#Download heat.in and save in Dir.
+
+mpirun -np 12 $AMBERHOME/bin/sander.MPI -O -i heat.in -o heat.out -p complex_sol.prmtop -c min2.rst -r heat.rst -x heat.mdcrd -ref min2.rst
+
+---------------------- $AMBERHOME/bin/pmemd.cuda  -O -i heat.in -o heat.out -p complex_sol.prmtop -c min2.rst -r heat.rst -x heat.mdcrd -ref min2.rst
+
+#Density:
+
+#Download density.in and save in Dir.
+
+mpirun -np 12 $AMBERHOME/bin/pmemd.cuda -O -i density.in -o density.out -p complex_sol.prmtop -c heat.rst -r density.rst -x density.mdcrd -ref heat.rst
+
+----------------------
+
+#Equilibrium:
+
+#Download equil.in and save in Dir.
+
+mpirun -np 12 $AMBERHOME/bin/pmemd.cuda -O -i equil.in -o equil.out -p complex_sol.prmtop -c density.rst -r equil.rst -x equil.mdcrd
+
+To compare the final equlibrium structure against the input structure do:
+
+$AMBERHOME/bin/ambpdb -p complex_sol.prmtop -c equil.rst > equil.pdb
+$AMBERHOME/bin/pmemd.cuda -O -i prod.in -o prod3.out -p complex_sol.prmtop -c prod2.rst -r prod3.rst -x prod3.mdcrd
+$AMBERHOME/bin/pmemd.cuda -O -i prod.in -o prod4.out -p complex_sol.prmtop -c prod3.rst -r prod4.rst -x prod4.mdcrd
+
+
+----------------------
+
+#Product:
+
+#Download prod.in and save in Dir.
+
+mpirun -np 12 $AMBERHOME/bin/pmemd.cuda -O -i prod.in -o prod1.out -p complex_sol.prmtop -c equil.rst -r prod1.rst -x prod1.mdcrd
+mpirun -np 12 $AMBERHOME/bin/sander.MPI -O -i prod.in -o prod2.out -p complex_sol.prmtop -c prod1.rst -r prod2.rst -x prod2.mdcrd
+mpirun -np 12 $AMBERHOME/bin/pmemd.cuda -O -i prod.in -o prod3.out -p complex_sol.prmtop -c prod2.rst -r prod3.rst -x prod3.mdcrd
+mpirun -np 12 $AMBERHOME/bin/pmemd.cuda -O -i prod.in -o prod4.out -p complex_sol.prmtop -c prod3.rst -r prod4.rst -x prod4.mdcrd
+
+combine all the trajectories in CPPTRAJ in one file.
+
+$AMBERHOME/bin/ambpdb -p complex_sol.prmtop -c prod1.rst > prod1.pdb
+
+----------------------
+
+#Binding free energy:
+
+mpirun -np 12 $AMBERHOME/bin/MMPBSA.py.MPI -O -i mmpbsa.in -o BINDING_FREE_ENERGY_cMet_L858R.dat -sp complex_sol.prmtop -cp complex_vac.prmtop -rp protein1.prmtop -lp protein2.prmtop -y prod*.mdcrd
+
+
+
